@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trouve ton produit digital — Outil IA</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0a; }
+    @keyframes fadeIn  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
+    @keyframes spin    { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    @keyframes bounce  { 0%,80%,100% { transform:scale(0); } 40% { transform:scale(1); } }
+    textarea::placeholder { color: #4b5563; }
+    textarea:focus { outline: none; }
+    button:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const QUESTIONS = [
+      { id:1, emoji:"🧠", question:"Quelle est ta compétence principale ?", subtext:"Sur quel sujet est-ce qu'on te demande souvent des conseils ?", placeholder:"Ex : je sais bien parler en public, je maîtrise la couture...", type:"textarea" },
+      { id:2, emoji:"🔧", question:"Quel problème as-tu déjà résolu ?", subtext:"Pour toi-même ou pour quelqu'un d'autre — un vrai résultat concret.", placeholder:"Ex : j'ai aidé un ami à trouver un emploi en 2 semaines...", type:"textarea" },
+      { id:3, emoji:"🎯", question:"Qui veux-tu aider ?", subtext:"Décris la personne précisément : âge, situation, galère principale.", placeholder:"Ex : des jeunes de 20-30 ans qui veulent lancer un business...", type:"textarea" },
+      { id:4, emoji:"📦", question:"Quel type de produit tu préfères créer ?", subtext:"Choisis ce qui te parle le plus.", type:"choice", choices:[
+        { value:"quick", label:"📄 Rapide à consommer", sub:"Ebook, checklist, template, mini-guide" },
+        { value:"immersif", label:"🎓 Immersif & transformant", sub:"Formation vidéo, programme, coaching" },
+        { value:"les deux", label:"⚡ Les deux m'intéressent", sub:"Je verrai selon les idées" },
+      ]},
+      { id:5, emoji:"⏰", question:"Combien de temps tu peux investir ?", subtext:"Pour créer ce produit, de zéro à prêt à vendre.", type:"choice", choices:[
+        { value:"quelques heures", label:"⚡ Quelques heures", sub:"Je veux quelque chose de rapide" },
+        { value:"1 à 2 semaines", label:"📅 1 à 2 semaines", sub:"Je peux m'y consacrer sérieusement" },
+        { value:"1 mois ou plus", label:"🏗️ 1 mois ou plus", sub:"Je suis prêt à construire quelque chose de solide" },
+      ]},
+    ];
+    const SYSTEM_PROMPT = `Tu es un expert en création de produits digitaux pour les marchés africains francophones. À partir des réponses d'un utilisateur, génère exactement 3 idées de produits digitaux. Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Format exact : {"recommendation":"1 ou 2 ou 3","raison":"2 phrases max","produits":[{"numero":1,"titre":"titre","format":"format","probleme":"problème résolu","pour_qui":"profil acheteur","prix_fcfa":"prix en FCFA","faisabilite":"Facile","delai_creation":"durée"}]}. Sois concret, ancré dans la réalité africaine : mobile-first, paiement mobile money.`;
+    const btnStyle = { background:"linear-gradient(135deg,#d4a843,#f5c842)", border:"none", borderRadius:"8px", padding:"14px 28px", fontSize:"15px", fontWeight:"700", color:"#000", cursor:"pointer", fontFamily:"'Georgia',serif", letterSpacing:"0.3px" };
+    const tagBox   = { background:"#111827", borderRadius:"6px", padding:"8px 12px" };
+    const tagLabel = { fontSize:"11px", color:"#6b7280", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"2px" };
+    const tagValue = { fontSize:"13px", color:"#e5e7eb", fontWeight:"600" };
+    const faisabiliteColor = f => f==="Facile"?"#22c55e":f==="Moyen"?"#f59e0b":"#ef4444";
+
+    function App() {
+      const [step,setStep]               = useState(0);
+      const [answers,setAnswers]         = useState({});
+      const [currentInput,setCurrentInput] = useState("");
+      const [results,setResults]         = useState(null);
+      const [error,setError]             = useState(null);
+      const [animating,setAnimating]     = useState(false);
+      const currentQuestion = QUESTIONS[step-1];
+      const progress = step>=1&&step<=5?(step/5)*100:step>5?100:0;
+
+      const goNext = () => {
+        if(step===0){ setAnimating(true); setTimeout(()=>{setStep(1);setAnimating(false);},300); return; }
+        const val = currentQuestion.type==="choice"?currentInput:currentInput.trim();
+        if(!val) return;
+        const newAnswers = {...answers,[currentQuestion.id]:val};
+        setAnswers(newAnswers); setCurrentInput("");
+        if(step===5){ setStep(6); generateResults(newAnswers); }
+        else{ setAnimating(true); setTimeout(()=>{setStep(step+1);setAnimating(false);},300); }
+      };
+
+      const generateResults = async (finalAnswers) => {
+        const userMessage = `1. Compétence : ${finalAnswers[1]}\n2. Problème résolu : ${finalAnswers[2]}\n3. Audience : ${finalAnswers[3]}\n4. Type produit : ${finalAnswers[4]}\n5. Temps : ${finalAnswers[5]}\nGénère 3 idées de produits digitaux.`;
+        try {
+          const response = await fetch("/api/claude", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({ system:SYSTEM_PROMPT, messages:[{role:"user",content:userMessage}] }),
+          });
+          const data  = await response.json();
+          const text  = (data.content||[]).map(i=>i.text||"").join("");
+          const clean = text.replace(/```json|```/g,"").trim();
+          const parsed = JSON.parse(clean);
+          setResults(parsed); setStep(7);
+        } catch(err) {
+          setError("Une erreur est survenue. Réessaie."); setStep(7);
+        }
+      };
+
+      const reset = () => { setStep(0);setAnswers({});setCurrentInput("");setResults(null);setError(null); };
+
+      return (
+        <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0a0a0a 0%,#111827 50%,#0f172a 100%)",fontFamily:"'Georgia','Times New Roman',serif",color:"#f5f0e8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"fixed",inset:0,opacity:0.03,backgroundImage:"radial-gradient(circle,#d4a843 1px,transparent 1px)",backgroundSize:"32px 32px",pointerEvents:"none"}}/>
+          <div style={{position:"fixed",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,#d4a843,#f5c842,#d4a843)",zIndex:10}}/>
+          <div style={{width:"100%",maxWidth:"640px",position:"relative",zIndex:1}}>
+
+            {step===0&&(
+              <div style={{textAlign:"center",animation:"fadeIn 0.6s ease"}}>
+                <div style={{fontSize:"48px",marginBottom:"16px"}}>💡</div>
+                <h1 style={{fontSize:"clamp(24px,5vw,36px)",fontWeight:"700",lineHeight:1.2,marginBottom:"12px",color:"#f5f0e8"}}>Trouve ton produit digital</h1>
+                <p style={{fontSize:"16px",color:"#d4a843",marginBottom:"8px",fontStyle:"italic"}}>5 questions · 3 idées · 1 direction claire.</p>
+                <p style={{fontSize:"14px",color:"#9ca3af",marginBottom:"40px",lineHeight:1.7}}>Tu as une compétence. Tu as une expérience. Il existe des gens qui ont besoin exactement de ce que tu sais faire — et qui sont prêts à payer pour ça.</p>
+                <button onClick={goNext} style={btnStyle}>Commencer →</button>
+                <p style={{fontSize:"12px",color:"#4b5563",marginTop:"16px"}}>Ça prend moins de 3 minutes</p>
+              </div>
+            )}
+
+            {step>=1&&step<=5&&(
+              <div style={{animation:animating?"fadeOut 0.3s ease":"fadeIn 0.4s ease"}}>
+                <div style={{marginBottom:"32px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:"8px"}}>
+                    <span style={{fontSize:"12px",color:"#6b7280",letterSpacing:"1px",textTransform:"uppercase"}}>Question {step} / 5</span>
+                    <span style={{fontSize:"12px",color:"#d4a843"}}>{Math.round(progress)}%</span>
+                  </div>
+                  <div style={{height:"2px",background:"#1f2937",borderRadius:"2px"}}>
+                    <div style={{height:"100%",width:`${progress}%`,background:"linear-gradient(90deg,#d4a843,#f5c842)",borderRadius:"2px",transition:"width 0.5s ease"}}/>
+                  </div>
+                </div>
+                <div style={{marginBottom:"28px"}}>
+                  <div style={{fontSize:"36px",marginBottom:"12px"}}>{currentQuestion.emoji}</div>
+                  <h2 style={{fontSize:"22px",fontWeight:"700",marginBottom:"6px",lineHeight:1.3}}>{currentQuestion.question}</h2>
+                  <p style={{fontSize:"14px",color:"#9ca3af",lineHeight:1.6}}>{currentQuestion.subtext}</p>
+                </div>
+                {currentQuestion.type==="textarea"&&(
+                  <textarea value={currentInput} onChange={e=>setCurrentInput(e.target.value)} placeholder={currentQuestion.placeholder}
+                    onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)goNext();}}
+                    onFocus={e=>e.target.style.borderColor="#d4a843"} onBlur={e=>e.target.style.borderColor="#374151"}
+                    style={{width:"100%",minHeight:"120px",padding:"16px",background:"#111827",border:"1px solid #374151",borderRadius:"8px",color:"#f5f0e8",fontSize:"15px",fontFamily:"inherit",lineHeight:1.6,resize:"vertical",boxSizing:"border-box",transition:"border-color 0.2s"}}/>
+                )}
+                {currentQuestion.type==="choice"&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+                    {currentQuestion.choices.map(c=>(
+                      <button key={c.value} onClick={()=>setCurrentInput(c.value)} style={{padding:"14px 18px",textAlign:"left",background:currentInput===c.value?"#1c1c0a":"#111827",border:`1px solid ${currentInput===c.value?"#d4a843":"#374151"}`,borderRadius:"8px",color:"#f5f0e8",cursor:"pointer",transition:"all 0.2s",fontFamily:"inherit"}}>
+                        <div style={{fontSize:"15px",fontWeight:"600"}}>{c.label}</div>
+                        <div style={{fontSize:"13px",color:"#9ca3af",marginTop:"2px"}}>{c.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:"24px",alignItems:"center"}}>
+                  {step>1?(<button onClick={()=>{setStep(step-1);setCurrentInput(answers[step-1]||"");}} style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"14px",fontFamily:"inherit"}}>← Retour</button>):<div/>}
+                  <button onClick={goNext} disabled={!currentInput||(currentQuestion.type==="textarea"&&!currentInput.trim())}
+                    style={{...btnStyle,opacity:(!currentInput||(currentQuestion.type==="textarea"&&!currentInput.trim()))?0.4:1,cursor:(!currentInput||(currentQuestion.type==="textarea"&&!currentInput.trim()))?"not-allowed":"pointer"}}>
+                    {step===5?"Générer mes idées ✨":"Suivant →"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step===6&&(
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:"48px",marginBottom:"20px",animation:"spin 2s linear infinite"}}>⚙️</div>
+                <h2 style={{fontSize:"20px",marginBottom:"12px"}}>Analyse en cours...</h2>
+                <p style={{color:"#9ca3af",fontSize:"14px",lineHeight:1.7}}>On croise tes compétences, ton audience et tes contraintes pour sortir les meilleures opportunités.</p>
+                <div style={{marginTop:"28px",display:"flex",justifyContent:"center",gap:"8px"}}>
+                  {[0,1,2].map(i=>(<div key={i} style={{width:"8px",height:"8px",borderRadius:"50%",background:"#d4a843",animation:`bounce 1.2s ease-in-out ${i*0.2}s infinite`}}/>))}
+                </div>
+              </div>
+            )}
+
+            {step===7&&(
+              <div style={{animation:"fadeIn 0.6s ease"}}>
+                {error?(
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:"40px",marginBottom:"16px"}}>⚠️</div>
+                    <p style={{color:"#ef4444",marginBottom:"20px"}}>{error}</p>
+                    <button onClick={reset} style={btnStyle}>Réessayer</button>
+                  </div>
+                ):results&&(
+                  <>
+                    <div style={{textAlign:"center",marginBottom:"32px"}}>
+                      <div style={{fontSize:"36px",marginBottom:"10px"}}>🎯</div>
+                      <h2 style={{fontSize:"24px",fontWeight:"700",marginBottom:"8px"}}>Tes 3 idées de produits</h2>
+                      <p style={{fontSize:"14px",color:"#9ca3af"}}>Basées sur ton profil, tes compétences et ta réalité.</p>
+                    </div>
+                    <div style={{background:"linear-gradient(135deg,#1c1a08,#1a1500)",border:"1px solid #d4a843",borderRadius:"10px",padding:"16px 20px",marginBottom:"24px"}}>
+                      <div style={{fontSize:"12px",color:"#d4a843",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"6px"}}>⭐ Recommandation prioritaire — Produit n°{results.recommendation}</div>
+                      <p style={{fontSize:"14px",color:"#e5e7eb",lineHeight:1.7,margin:0}}>{results.raison}</p>
+                    </div>
+                    {results.produits?.map(p=>(
+                      <div key={p.numero} style={{background:p.numero===parseInt(results.recommendation)?"#0f1a0a":"#0d1117",border:`1px solid ${p.numero===parseInt(results.recommendation)?"#d4a843":"#1f2937"}`,borderRadius:"10px",padding:"20px",marginBottom:"16px",position:"relative",overflow:"hidden"}}>
+                        {p.numero===parseInt(results.recommendation)&&(<div style={{position:"absolute",top:"12px",right:"12px",background:"#d4a843",color:"#000",fontSize:"11px",fontWeight:"700",padding:"3px 8px",borderRadius:"4px"}}>PRIORITAIRE</div>)}
+                        <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"12px"}}>
+                          <div style={{width:"28px",height:"28px",borderRadius:"50%",background:"#1f2937",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:"700",color:"#d4a843",flexShrink:0}}>{p.numero}</div>
+                          <h3 style={{fontSize:"17px",fontWeight:"700",margin:0,lineHeight:1.3}}>{p.titre}</h3>
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
+                          <div style={tagBox}><span style={tagLabel}>Format</span><span style={tagValue}>{p.format}</span></div>
+                          <div style={tagBox}><span style={tagLabel}>Prix suggéré</span><span style={{...tagValue,color:"#d4a843",fontWeight:"700"}}>{p.prix_fcfa}</span></div>
+                          <div style={tagBox}><span style={tagLabel}>Faisabilité</span><span style={{...tagValue,color:faisabiliteColor(p.faisabilite)}}>{p.faisabilite}</span></div>
+                          <div style={tagBox}><span style={tagLabel}>Délai création</span><span style={tagValue}>{p.delai_creation}</span></div>
+                        </div>
+                        <div style={{marginBottom:"8px"}}><span style={tagLabel}>🔧 Problème résolu</span><p style={{fontSize:"14px",color:"#e5e7eb",margin:"4px 0 0",lineHeight:1.6}}>{p.probleme}</p></div>
+                        <div><span style={tagLabel}>👤 Pour qui</span><p style={{fontSize:"14px",color:"#e5e7eb",margin:"4px 0 0",lineHeight:1.6}}>{p.pour_qui}</p></div>
+                      </div>
+                    ))}
+                    <div style={{textAlign:"center",marginTop:"28px"}}>
+                      <button onClick={reset} style={{...btnStyle,background:"transparent",border:"1px solid #374151",color:"#9ca3af"}}>↺ Recommencer</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
