@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+                <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -23,6 +23,7 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState } = React;
+    const API_KEY = "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";
     const QUESTIONS = [
       { id:1, emoji:"🧠", question:"Quelle est ta compétence principale ?", subtext:"Sur quel sujet est-ce qu'on te demande souvent des conseils ?", placeholder:"Ex : je sais bien parler en public, je maîtrise la couture...", type:"textarea" },
       { id:2, emoji:"🔧", question:"Quel problème as-tu déjà résolu ?", subtext:"Pour toi-même ou pour quelqu'un d'autre — un vrai résultat concret.", placeholder:"Ex : j'ai aidé un ami à trouver un emploi en 2 semaines...", type:"textarea" },
@@ -38,8 +39,8 @@
         { value:"1 mois ou plus", label:"🏗️ 1 mois ou plus", sub:"Je suis prêt à construire quelque chose de solide" },
       ]},
     ];
-    const SYSTEM_PROMPT = `Tu es un expert en création de produits digitaux pour les marchés africains francophones. À partir des réponses d'un utilisateur, génère exactement 3 idées de produits digitaux. Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Format exact : {"recommendation":"1 ou 2 ou 3","raison":"2 phrases max","produits":[{"numero":1,"titre":"titre","format":"format","probleme":"problème résolu","pour_qui":"profil acheteur","prix_fcfa":"prix en FCFA","faisabilite":"Facile","delai_creation":"durée"}]}. Sois concret, ancré dans la réalité africaine : mobile-first, paiement mobile money.`;
-    const btnStyle = { background:"linear-gradient(135deg,#d4a843,#f5c842)", border:"none", borderRadius:"8px", padding:"14px 28px", fontSize:"15px", fontWeight:"700", color:"#000", cursor:"pointer", fontFamily:"'Georgia',serif", letterSpacing:"0.3px" };
+    const SYSTEM_PROMPT = `Tu es un expert en création de produits digitaux pour les marchés africains francophones. À partir des réponses d'un utilisateur, génère exactement 3 idées de produits digitaux. Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Format exact : {"recommendation":"1 ou 2 ou 3","raison":"2 phrases max","produits":[{"numero":1,"titre":"titre","format":"format","probleme":"problème résolu","pour_qui":"profil acheteur","prix_fcfa":"prix en FCFA","faisabilite":"Facile","delai_creation":"durée"}]}. Sois concret, ancré dans la réalité africaine.`;
+    const btnStyle = { background:"linear-gradient(135deg,#d4a843,#f5c842)", border:"none", borderRadius:"8px", padding:"14px 28px", fontSize:"15px", fontWeight:"700", color:"#000", cursor:"pointer", fontFamily:"'Georgia',serif" };
     const tagBox   = { background:"#111827", borderRadius:"6px", padding:"8px 12px" };
     const tagLabel = { fontSize:"11px", color:"#6b7280", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"2px" };
     const tagValue = { fontSize:"13px", color:"#e5e7eb", fontWeight:"600" };
@@ -68,10 +69,19 @@
       const generateResults = async (finalAnswers) => {
         const userMessage = `1. Compétence : ${finalAnswers[1]}\n2. Problème résolu : ${finalAnswers[2]}\n3. Audience : ${finalAnswers[3]}\n4. Type produit : ${finalAnswers[4]}\n5. Temps : ${finalAnswers[5]}\nGénère 3 idées de produits digitaux.`;
         try {
-          const response = await fetch("/api/claude", {
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
             method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({ system:SYSTEM_PROMPT, messages:[{role:"user",content:userMessage}] }),
+            headers:{
+              "Content-Type":"application/json",
+              "x-api-key": API_KEY,
+              "anthropic-version":"2023-06-01"
+            },
+            body:JSON.stringify({
+              model:"claude-sonnet-4-20250514",
+              max_tokens:1000,
+              system:SYSTEM_PROMPT,
+              messages:[{role:"user",content:userMessage}]
+            }),
           });
           const data  = await response.json();
           const text  = (data.content||[]).map(i=>i.text||"").join("");
