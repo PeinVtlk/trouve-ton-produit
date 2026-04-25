@@ -1,218 +1,328 @@
-                <!DOCTYPE html>
+          <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trouve ton produit digital — Outil IA</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <title>Trouve ton produit digital — Outil</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0a0a; }
-    @keyframes fadeIn  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
-    @keyframes spin    { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-    @keyframes bounce  { 0%,80%,100% { transform:scale(0); } 40% { transform:scale(1); } }
-    textarea::placeholder { color: #4b5563; }
-    textarea:focus { outline: none; }
-    button:active { transform: scale(0.98); }
+    body { background: #0a0a0a; font-family: 'Georgia', serif; color: #f5f0e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes bounce { 0%,80%,100% { transform:scale(0); } 40% { transform:scale(1); } }
+    .container { width: 100%; max-width: 620px; animation: fadeIn 0.5s ease; }
+    .bar-top { position: fixed; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg,#d4a843,#f5c842,#d4a843); z-index:10; }
+    .dots { position:fixed; inset:0; opacity:0.03; background-image: radial-gradient(circle,#d4a843 1px,transparent 1px); background-size:32px 32px; pointer-events:none; }
+    h1 { font-size: clamp(22px,5vw,32px); font-weight:700; line-height:1.2; margin-bottom:10px; }
+    .gold { color: #d4a843; }
+    .grey { color: #9ca3af; }
+    .small { font-size:12px; color:#4b5563; margin-top:12px; }
+    .btn { background: linear-gradient(135deg,#d4a843,#f5c842); border:none; border-radius:8px; padding:14px 28px; font-size:15px; font-weight:700; color:#000; cursor:pointer; font-family:'Georgia',serif; transition: opacity 0.2s; }
+    .btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-ghost { background:transparent; border:1px solid #374151; color:#9ca3af; border-radius:8px; padding:12px 24px; font-size:14px; cursor:pointer; font-family:'Georgia',serif; }
+    .progress-bar { height:2px; background:#1f2937; border-radius:2px; margin-bottom:28px; }
+    .progress-fill { height:100%; background: linear-gradient(90deg,#d4a843,#f5c842); border-radius:2px; transition: width 0.5s ease; }
+    .progress-labels { display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; }
+    .question-emoji { font-size:36px; margin-bottom:12px; }
+    .question-title { font-size:20px; font-weight:700; margin-bottom:6px; line-height:1.3; }
+    .question-sub { font-size:14px; color:#9ca3af; line-height:1.6; margin-bottom:20px; }
+    .choices { display:flex; flex-direction:column; gap:10px; }
+    .choice { padding:14px 18px; text-align:left; background:#111827; border:1px solid #374151; border-radius:8px; color:#f5f0e8; cursor:pointer; transition:all 0.2s; font-family:'Georgia',serif; width:100%; }
+    .choice.selected { background:#1c1c0a; border-color:#d4a843; }
+    .choice-label { font-size:15px; font-weight:600; }
+    .choice-sub { font-size:13px; color:#9ca3af; margin-top:3px; }
+    .nav { display:flex; justify-content:space-between; align-items:center; margin-top:24px; }
+    .back-btn { background:none; border:none; color:#6b7280; cursor:pointer; font-size:14px; font-family:'Georgia',serif; }
+    .card { background:#0d1117; border:1px solid #1f2937; border-radius:10px; padding:20px; margin-bottom:16px; position:relative; }
+    .card.priority { background:#0f1a0a; border-color:#d4a843; }
+    .priority-badge { position:absolute; top:12px; right:12px; background:#d4a843; color:#000; font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; }
+    .card-num { width:28px; height:28px; border-radius:50%; background:#1f2937; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#d4a843; flex-shrink:0; }
+    .card-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .card-title { font-size:16px; font-weight:700; line-height:1.3; }
+    .tags { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .tag { background:#111827; border-radius:6px; padding:8px 12px; }
+    .tag-label { font-size:11px; color:#6b7280; letter-spacing:0.5px; text-transform:uppercase; display:block; margin-bottom:2px; }
+    .tag-value { font-size:13px; color:#e5e7eb; font-weight:600; }
+    .tag-value.gold { color:#d4a843; }
+    .tag-value.green { color:#22c55e; }
+    .tag-value.orange { color:#f59e0b; }
+    .card-section { margin-bottom:10px; }
+    .card-section-label { font-size:11px; color:#6b7280; letter-spacing:0.5px; text-transform:uppercase; display:block; margin-bottom:4px; }
+    .card-section-text { font-size:14px; color:#e5e7eb; line-height:1.6; }
+    .reco-box { background:linear-gradient(135deg,#1c1a08,#1a1500); border:1px solid #d4a843; border-radius:10px; padding:16px 20px; margin-bottom:24px; }
+    .reco-label { font-size:12px; color:#d4a843; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+    .reco-text { font-size:14px; color:#e5e7eb; line-height:1.7; }
+    .center { text-align:center; }
+    .results-title { font-size:22px; font-weight:700; margin-bottom:8px; }
+    .results-sub { font-size:14px; color:#9ca3af; margin-bottom:28px; }
+    .end-nav { text-align:center; margin-top:28px; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState } = React;
-    const API_KEY = "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";
+  <div class="bar-top"></div>
+  <div class="dots"></div>
+  <div class="container" id="app"></div>
+
+  <script>
     const QUESTIONS = [
-      { id:1, emoji:"🧠", question:"Quelle est ta compétence principale ?", subtext:"Sur quel sujet est-ce qu'on te demande souvent des conseils ?", placeholder:"Ex : je sais bien parler en public, je maîtrise la couture...", type:"textarea" },
-      { id:2, emoji:"🔧", question:"Quel problème as-tu déjà résolu ?", subtext:"Pour toi-même ou pour quelqu'un d'autre — un vrai résultat concret.", placeholder:"Ex : j'ai aidé un ami à trouver un emploi en 2 semaines...", type:"textarea" },
-      { id:3, emoji:"🎯", question:"Qui veux-tu aider ?", subtext:"Décris la personne précisément : âge, situation, galère principale.", placeholder:"Ex : des jeunes de 20-30 ans qui veulent lancer un business...", type:"textarea" },
-      { id:4, emoji:"📦", question:"Quel type de produit tu préfères créer ?", subtext:"Choisis ce qui te parle le plus.", type:"choice", choices:[
-        { value:"quick", label:"📄 Rapide à consommer", sub:"Ebook, checklist, template, mini-guide" },
-        { value:"immersif", label:"🎓 Immersif & transformant", sub:"Formation vidéo, programme, coaching" },
-        { value:"les deux", label:"⚡ Les deux m'intéressent", sub:"Je verrai selon les idées" },
-      ]},
-      { id:5, emoji:"⏰", question:"Combien de temps tu peux investir ?", subtext:"Pour créer ce produit, de zéro à prêt à vendre.", type:"choice", choices:[
-        { value:"quelques heures", label:"⚡ Quelques heures", sub:"Je veux quelque chose de rapide" },
-        { value:"1 à 2 semaines", label:"📅 1 à 2 semaines", sub:"Je peux m'y consacrer sérieusement" },
-        { value:"1 mois ou plus", label:"🏗️ 1 mois ou plus", sub:"Je suis prêt à construire quelque chose de solide" },
-      ]},
+      {
+        id: "domaine", emoji: "🧠",
+        question: "Dans quel domaine es-tu le plus à l'aise ?",
+        sub: "Choisis celui qui te correspond le mieux.",
+        choices: [
+          { value: "business",  label: "💼 Business & Argent",     sub: "Vente, marketing, entrepreneuriat, finances" },
+          { value: "sante",     label: "💪 Santé & Bien-être",      sub: "Sport, nutrition, beauté, développement perso" },
+          { value: "tech",      label: "💻 Tech & Numérique",       sub: "Informatique, réseaux sociaux, design, IA" },
+          { value: "education", label: "📚 Éducation & Formation",  sub: "Enseignement, langues, compétences pro" },
+          { value: "creation",  label: "🎨 Création & Artisanat",   sub: "Couture, cuisine, art, musique, écriture" },
+        ]
+      },
+      {
+        id: "audience", emoji: "🎯",
+        question: "À qui veux-tu vendre ?",
+        sub: "Quel profil de client t'attire le plus ?",
+        choices: [
+          { value: "jeunes",      label: "🎓 Étudiants & Jeunes",         sub: "18-30 ans, peu de moyens mais motivés" },
+          { value: "salaries",    label: "👔 Salariés & Professionnels",   sub: "Revenus stables, cherchent à progresser" },
+          { value: "entrepreneurs",label: "🚀 Entrepreneurs & Commerçants",sub: "Veulent développer leur business" },
+          { value: "parents",     label: "👨‍👩‍👧 Parents & Familles",          sub: "Cherchent des solutions pratiques" },
+        ]
+      },
+      {
+        id: "format", emoji: "📦",
+        question: "Quel format préfères-tu créer ?",
+        sub: "Sois honnête — c'est important pour la faisabilité.",
+        choices: [
+          { value: "ecrit",  label: "✍️ J'aime écrire",        sub: "E-book, guide, checklist, newsletter" },
+          { value: "video",  label: "🎥 Je préfère parler",    sub: "Formation vidéo, coaching, tutoriel" },
+          { value: "visual", label: "🎨 Je suis créatif(ve)",  sub: "Templates, modèles, designs" },
+          { value: "live",   label: "💬 J'aime l'humain",      sub: "Coaching direct, groupe WhatsApp, consulting" },
+        ]
+      },
+      {
+        id: "temps", emoji: "⏰",
+        question: "Combien de temps peux-tu investir ?",
+        sub: "Pour créer ton produit de A à Z.",
+        choices: [
+          { value: "rapide",  label: "⚡ Ce weekend",         sub: "2 à 8 heures maximum" },
+          { value: "moyen",   label: "📅 Cette semaine",      sub: "1 à 2 semaines" },
+          { value: "long",    label: "🏗️ Ce mois-ci",         sub: "3 à 4 semaines" },
+        ]
+      },
+      {
+        id: "prix", emoji: "💰",
+        question: "Dans quelle fourchette de prix veux-tu vendre ?",
+        sub: "Choisis selon ce que tu penses que ton audience peut payer.",
+        choices: [
+          { value: "bas",    label: "🟢 Accessible",    sub: "1 000 – 5 000 FCFA" },
+          { value: "moyen",  label: "🟡 Intermédiaire", sub: "5 000 – 15 000 FCFA" },
+          { value: "premium",label: "🔴 Premium",       sub: "15 000 FCFA et plus" },
+        ]
+      },
     ];
-    const SYSTEM_PROMPT = `Tu es un expert en création de produits digitaux pour les marchés africains francophones. À partir des réponses d'un utilisateur, génère exactement 3 idées de produits digitaux. Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Format exact : {"recommendation":"1 ou 2 ou 3","raison":"2 phrases max","produits":[{"numero":1,"titre":"titre","format":"format","probleme":"problème résolu","pour_qui":"profil acheteur","prix_fcfa":"prix en FCFA","faisabilite":"Facile","delai_creation":"durée"}]}. Sois concret, ancré dans la réalité africaine.`;
-    const btnStyle = { background:"linear-gradient(135deg,#d4a843,#f5c842)", border:"none", borderRadius:"8px", padding:"14px 28px", fontSize:"15px", fontWeight:"700", color:"#000", cursor:"pointer", fontFamily:"'Georgia',serif" };
-    const tagBox   = { background:"#111827", borderRadius:"6px", padding:"8px 12px" };
-    const tagLabel = { fontSize:"11px", color:"#6b7280", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"2px" };
-    const tagValue = { fontSize:"13px", color:"#e5e7eb", fontWeight:"600" };
-    const faisabiliteColor = f => f==="Facile"?"#22c55e":f==="Moyen"?"#f59e0b":"#ef4444";
 
-    function App() {
-      const [step,setStep]               = useState(0);
-      const [answers,setAnswers]         = useState({});
-      const [currentInput,setCurrentInput] = useState("");
-      const [results,setResults]         = useState(null);
-      const [error,setError]             = useState(null);
-      const [animating,setAnimating]     = useState(false);
-      const currentQuestion = QUESTIONS[step-1];
-      const progress = step>=1&&step<=5?(step/5)*100:step>5?100:0;
+    const PRODUITS = {
+      business: {
+        ecrit:  ["Guide PDF : Les 5 erreurs qui tuent ton business", "E-book : Doubler tes ventes en 30 jours", "Checklist : Lancer sa boutique en ligne pas à pas"],
+        video:  ["Formation : Créer son business en ligne depuis l'Afrique", "Tutoriel vidéo : Vendre sur WhatsApp comme un pro", "Mini-formation : Attirer des clients avec Facebook"],
+        visual: ["Pack templates : Factures & devis professionnels", "Kit Canva : Créer ses visuels marketing", "Templates : Contrats & documents business"],
+        live:   ["Coaching business 1-1 par WhatsApp", "Groupe privé : Entrepreneurs Afrique (mensuel)", "Consulting : Audit de ton business en 1h"],
+      },
+      sante: {
+        ecrit:  ["Guide PDF : Perdre du poids sans salle de sport", "E-book : 30 recettes saines et rapides", "Plan nutritionnel personnalisé (PDF)"],
+        video:  ["Programme fitness vidéo : 21 jours de transformation", "Tutoriel : Préparer ses repas de la semaine en 1h", "Formation : Bien manger avec un petit budget"],
+        visual: ["Pack templates : Planning repas hebdomadaire", "Journal de suivi fitness (PDF interactif)", "Fiches recettes illustrées (Canva)"],
+        live:   ["Coaching nutrition par WhatsApp (1 mois)", "Groupe défi fitness 21 jours (WhatsApp)", "Consultation bien-être en ligne"],
+      },
+      tech: {
+        ecrit:  ["Guide : Utiliser ChatGPT pour son business africain", "E-book : Créer son site web sans coder", "Manuel : Gérer ses réseaux sociaux efficacement"],
+        video:  ["Formation : Créer des visuels pro avec Canva", "Tutoriel : Monétiser TikTok depuis l'Afrique", "Formation : L'IA pour gagner du temps au travail"],
+        visual: ["Pack templates : Posts réseaux sociaux (Canva)", "Kit design : Logos & identité visuelle", "Templates : Présentations PowerPoint pro"],
+        live:   ["Coaching digital : Créer sa présence en ligne", "Formation live : Maîtriser un outil numérique", "Consulting : Stratégie réseaux sociaux"],
+      },
+      education: {
+        ecrit:  ["Guide : Apprendre l'anglais en 90 jours", "E-book : Réussir ses examens avec les bonnes méthodes", "Manuel : Rédiger un CV qui attire les employeurs"],
+        video:  ["Cours vidéo : Français avancé pour professionnels", "Formation : Prise de parole en public", "Tutoriels : Maîtriser Excel de zéro à expert"],
+        visual: ["Fiches de révision illustrées", "Templates : CV et lettres de motivation", "Pack : Supports de cours visuels"],
+        live:   ["Coaching scolaire par WhatsApp", "Cours particuliers en ligne", "Groupe d'étude privé (WhatsApp mensuel)"],
+      },
+      creation: {
+        ecrit:  ["E-book : Apprendre la couture en 10 leçons", "Recueil : 50 recettes traditionnelles africaines", "Guide : Vivre de sa passion créative"],
+        video:  ["Formation vidéo : Tresses et coiffures africaines", "Tutoriels cuisine : Plats traditionnels étape par étape", "Cours : Apprendre à dessiner pour débutants"],
+        visual: ["Patrons de couture PDF", "Fiches recettes illustrées à imprimer", "Pack : Templates créatifs pour artisans"],
+        live:   ["Atelier couture en ligne (groupe WhatsApp)", "Coaching culinaire personnalisé", "Cours de création en direct (Zoom)"],
+      },
+    };
 
-      const goNext = () => {
-        if(step===0){ setAnimating(true); setTimeout(()=>{setStep(1);setAnimating(false);},300); return; }
-        const val = currentQuestion.type==="choice"?currentInput:currentInput.trim();
-        if(!val) return;
-        const newAnswers = {...answers,[currentQuestion.id]:val};
-        setAnswers(newAnswers); setCurrentInput("");
-        if(step===5){ setStep(6); generateResults(newAnswers); }
-        else{ setAnimating(true); setTimeout(()=>{setStep(step+1);setAnimating(false);},300); }
-      };
+    const PRIX = {
+      bas:     { fourchette: "1 500 – 4 000 FCFA",  delai_ecrit: "1 weekend", delai_video: "1 semaine",   delai_visual: "2-3 jours",  delai_live: "Immédiat" },
+      moyen:   { fourchette: "5 000 – 12 000 FCFA", delai_ecrit: "1 semaine", delai_video: "2 semaines",  delai_visual: "1 semaine",  delai_live: "Immédiat" },
+      premium: { fourchette: "15 000 – 35 000 FCFA",delai_ecrit: "2 semaines",delai_video: "3-4 semaines",delai_visual: "2 semaines", delai_live: "Immédiat" },
+    };
 
-      const generateResults = async (finalAnswers) => {
-        const userMessage = `1. Compétence : ${finalAnswers[1]}\n2. Problème résolu : ${finalAnswers[2]}\n3. Audience : ${finalAnswers[3]}\n4. Type produit : ${finalAnswers[4]}\n5. Temps : ${finalAnswers[5]}\nGénère 3 idées de produits digitaux.`;
-        try {
-          const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method:"POST",
-            headers:{
-              "Content-Type":"application/json",
-              "x-api-key": API_KEY,
-              "anthropic-version":"2023-06-01"
-            },
-            body:JSON.stringify({
-              model:"claude-sonnet-4-20250514",
-              max_tokens:1000,
-              system:SYSTEM_PROMPT,
-              messages:[{role:"user",content:userMessage}]
-            }),
-          });
-          const data  = await response.json();
-          const text  = (data.content||[]).map(i=>i.text||"").join("");
-          const clean = text.replace(/```json|```/g,"").trim();
-          const parsed = JSON.parse(clean);
-          setResults(parsed); setStep(7);
-        } catch(err) {
-          setError("Une erreur est survenue. Réessaie."); setStep(7);
-        }
-      };
+    const FORMAT_LABELS = { ecrit: "E-book / Guide PDF", video: "Formation vidéo", visual: "Pack de templates / Visuels", live: "Coaching / Accompagnement direct" };
+    const FAISABILITE = { rapide: { ecrit:"Facile", video:"Moyen", visual:"Facile", live:"Facile" }, moyen: { ecrit:"Facile", video:"Facile", visual:"Facile", live:"Facile" }, long: { ecrit:"Facile", video:"Facile", visual:"Facile", live:"Facile" } };
 
-      const reset = () => { setStep(0);setAnswers({});setCurrentInput("");setResults(null);setError(null); };
+    let answers = {};
+    let step = 0;
 
-      return (
-        <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0a0a0a 0%,#111827 50%,#0f172a 100%)",fontFamily:"'Georgia','Times New Roman',serif",color:"#f5f0e8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"fixed",inset:0,opacity:0.03,backgroundImage:"radial-gradient(circle,#d4a843 1px,transparent 1px)",backgroundSize:"32px 32px",pointerEvents:"none"}}/>
-          <div style={{position:"fixed",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,#d4a843,#f5c842,#d4a843)",zIndex:10}}/>
-          <div style={{width:"100%",maxWidth:"640px",position:"relative",zIndex:1}}>
+    function getResults() {
+      const { domaine, format, prix, temps } = answers;
+      const titres = PRODUITS[domaine]?.[format] || ["Produit digital dans ton domaine", "Formation en ligne", "Guide pratique"];
+      const prixInfo = PRIX[prix] || PRIX.moyen;
+      const delaKey = "delai_" + format;
+      const fais = FAISABILITE[temps]?.[format] || "Facile";
 
-            {step===0&&(
-              <div style={{textAlign:"center",animation:"fadeIn 0.6s ease"}}>
-                <div style={{fontSize:"48px",marginBottom:"16px"}}>💡</div>
-                <h1 style={{fontSize:"clamp(24px,5vw,36px)",fontWeight:"700",lineHeight:1.2,marginBottom:"12px",color:"#f5f0e8"}}>Trouve ton produit digital</h1>
-                <p style={{fontSize:"16px",color:"#d4a843",marginBottom:"8px",fontStyle:"italic"}}>5 questions · 3 idées · 1 direction claire.</p>
-                <p style={{fontSize:"14px",color:"#9ca3af",marginBottom:"40px",lineHeight:1.7}}>Tu as une compétence. Tu as une expérience. Il existe des gens qui ont besoin exactement de ce que tu sais faire — et qui sont prêts à payer pour ça.</p>
-                <button onClick={goNext} style={btnStyle}>Commencer →</button>
-                <p style={{fontSize:"12px",color:"#4b5563",marginTop:"16px"}}>Ça prend moins de 3 minutes</p>
-              </div>
-            )}
-
-            {step>=1&&step<=5&&(
-              <div style={{animation:animating?"fadeOut 0.3s ease":"fadeIn 0.4s ease"}}>
-                <div style={{marginBottom:"32px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:"8px"}}>
-                    <span style={{fontSize:"12px",color:"#6b7280",letterSpacing:"1px",textTransform:"uppercase"}}>Question {step} / 5</span>
-                    <span style={{fontSize:"12px",color:"#d4a843"}}>{Math.round(progress)}%</span>
-                  </div>
-                  <div style={{height:"2px",background:"#1f2937",borderRadius:"2px"}}>
-                    <div style={{height:"100%",width:`${progress}%`,background:"linear-gradient(90deg,#d4a843,#f5c842)",borderRadius:"2px",transition:"width 0.5s ease"}}/>
-                  </div>
-                </div>
-                <div style={{marginBottom:"28px"}}>
-                  <div style={{fontSize:"36px",marginBottom:"12px"}}>{currentQuestion.emoji}</div>
-                  <h2 style={{fontSize:"22px",fontWeight:"700",marginBottom:"6px",lineHeight:1.3}}>{currentQuestion.question}</h2>
-                  <p style={{fontSize:"14px",color:"#9ca3af",lineHeight:1.6}}>{currentQuestion.subtext}</p>
-                </div>
-                {currentQuestion.type==="textarea"&&(
-                  <textarea value={currentInput} onChange={e=>setCurrentInput(e.target.value)} placeholder={currentQuestion.placeholder}
-                    onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)goNext();}}
-                    onFocus={e=>e.target.style.borderColor="#d4a843"} onBlur={e=>e.target.style.borderColor="#374151"}
-                    style={{width:"100%",minHeight:"120px",padding:"16px",background:"#111827",border:"1px solid #374151",borderRadius:"8px",color:"#f5f0e8",fontSize:"15px",fontFamily:"inherit",lineHeight:1.6,resize:"vertical",boxSizing:"border-box",transition:"border-color 0.2s"}}/>
-                )}
-                {currentQuestion.type==="choice"&&(
-                  <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-                    {currentQuestion.choices.map(c=>(
-                      <button key={c.value} onClick={()=>setCurrentInput(c.value)} style={{padding:"14px 18px",textAlign:"left",background:currentInput===c.value?"#1c1c0a":"#111827",border:`1px solid ${currentInput===c.value?"#d4a843":"#374151"}`,borderRadius:"8px",color:"#f5f0e8",cursor:"pointer",transition:"all 0.2s",fontFamily:"inherit"}}>
-                        <div style={{fontSize:"15px",fontWeight:"600"}}>{c.label}</div>
-                        <div style={{fontSize:"13px",color:"#9ca3af",marginTop:"2px"}}>{c.sub}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:"24px",alignItems:"center"}}>
-                  {step>1?(<button onClick={()=>{setStep(step-1);setCurrentInput(answers[step-1]||"");}} style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"14px",fontFamily:"inherit"}}>← Retour</button>):<div/>}
-                  <button onClick={goNext} disabled={!currentInput||(currentQuestion.type==="textarea"&&!currentInput.trim())}
-                    style={{...btnStyle,opacity:(!currentInput||(currentQuestion.type==="textarea"&&!currentInput.trim()))?0.4:1,cursor:(!currentInput||(currentQuestion.type==="textarea"&&!currentInput.trim()))?"not-allowed":"pointer"}}>
-                    {step===5?"Générer mes idées ✨":"Suivant →"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step===6&&(
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:"48px",marginBottom:"20px",animation:"spin 2s linear infinite"}}>⚙️</div>
-                <h2 style={{fontSize:"20px",marginBottom:"12px"}}>Analyse en cours...</h2>
-                <p style={{color:"#9ca3af",fontSize:"14px",lineHeight:1.7}}>On croise tes compétences, ton audience et tes contraintes pour sortir les meilleures opportunités.</p>
-                <div style={{marginTop:"28px",display:"flex",justifyContent:"center",gap:"8px"}}>
-                  {[0,1,2].map(i=>(<div key={i} style={{width:"8px",height:"8px",borderRadius:"50%",background:"#d4a843",animation:`bounce 1.2s ease-in-out ${i*0.2}s infinite`}}/>))}
-                </div>
-              </div>
-            )}
-
-            {step===7&&(
-              <div style={{animation:"fadeIn 0.6s ease"}}>
-                {error?(
-                  <div style={{textAlign:"center"}}>
-                    <div style={{fontSize:"40px",marginBottom:"16px"}}>⚠️</div>
-                    <p style={{color:"#ef4444",marginBottom:"20px"}}>{error}</p>
-                    <button onClick={reset} style={btnStyle}>Réessayer</button>
-                  </div>
-                ):results&&(
-                  <>
-                    <div style={{textAlign:"center",marginBottom:"32px"}}>
-                      <div style={{fontSize:"36px",marginBottom:"10px"}}>🎯</div>
-                      <h2 style={{fontSize:"24px",fontWeight:"700",marginBottom:"8px"}}>Tes 3 idées de produits</h2>
-                      <p style={{fontSize:"14px",color:"#9ca3af"}}>Basées sur ton profil, tes compétences et ta réalité.</p>
-                    </div>
-                    <div style={{background:"linear-gradient(135deg,#1c1a08,#1a1500)",border:"1px solid #d4a843",borderRadius:"10px",padding:"16px 20px",marginBottom:"24px"}}>
-                      <div style={{fontSize:"12px",color:"#d4a843",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"6px"}}>⭐ Recommandation prioritaire — Produit n°{results.recommendation}</div>
-                      <p style={{fontSize:"14px",color:"#e5e7eb",lineHeight:1.7,margin:0}}>{results.raison}</p>
-                    </div>
-                    {results.produits?.map(p=>(
-                      <div key={p.numero} style={{background:p.numero===parseInt(results.recommendation)?"#0f1a0a":"#0d1117",border:`1px solid ${p.numero===parseInt(results.recommendation)?"#d4a843":"#1f2937"}`,borderRadius:"10px",padding:"20px",marginBottom:"16px",position:"relative",overflow:"hidden"}}>
-                        {p.numero===parseInt(results.recommendation)&&(<div style={{position:"absolute",top:"12px",right:"12px",background:"#d4a843",color:"#000",fontSize:"11px",fontWeight:"700",padding:"3px 8px",borderRadius:"4px"}}>PRIORITAIRE</div>)}
-                        <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"12px"}}>
-                          <div style={{width:"28px",height:"28px",borderRadius:"50%",background:"#1f2937",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:"700",color:"#d4a843",flexShrink:0}}>{p.numero}</div>
-                          <h3 style={{fontSize:"17px",fontWeight:"700",margin:0,lineHeight:1.3}}>{p.titre}</h3>
-                        </div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
-                          <div style={tagBox}><span style={tagLabel}>Format</span><span style={tagValue}>{p.format}</span></div>
-                          <div style={tagBox}><span style={tagLabel}>Prix suggéré</span><span style={{...tagValue,color:"#d4a843",fontWeight:"700"}}>{p.prix_fcfa}</span></div>
-                          <div style={tagBox}><span style={tagLabel}>Faisabilité</span><span style={{...tagValue,color:faisabiliteColor(p.faisabilite)}}>{p.faisabilite}</span></div>
-                          <div style={tagBox}><span style={tagLabel}>Délai création</span><span style={tagValue}>{p.delai_creation}</span></div>
-                        </div>
-                        <div style={{marginBottom:"8px"}}><span style={tagLabel}>🔧 Problème résolu</span><p style={{fontSize:"14px",color:"#e5e7eb",margin:"4px 0 0",lineHeight:1.6}}>{p.probleme}</p></div>
-                        <div><span style={tagLabel}>👤 Pour qui</span><p style={{fontSize:"14px",color:"#e5e7eb",margin:"4px 0 0",lineHeight:1.6}}>{p.pour_qui}</p></div>
-                      </div>
-                    ))}
-                    <div style={{textAlign:"center",marginTop:"28px"}}>
-                      <button onClick={reset} style={{...btnStyle,background:"transparent",border:"1px solid #374151",color:"#9ca3af"}}>↺ Recommencer</button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      );
+      return [
+        {
+          numero: 1, prioritaire: true,
+          titre: titres[0],
+          format: FORMAT_LABELS[format],
+          prix: prixInfo.fourchette,
+          faisabilite: fais,
+          delai: prixInfo[delaKey] || "1 semaine",
+          probleme: "Ton client cherche une solution rapide et pratique à un problème précis dans son quotidien.",
+          pour_qui: audienceLabel(answers.audience),
+        },
+        {
+          numero: 2, prioritaire: false,
+          titre: titres[1],
+          format: FORMAT_LABELS[format],
+          prix: prixInfo.fourchette,
+          faisabilite: fais,
+          delai: prixInfo[delaKey] || "1 semaine",
+          probleme: "Ton client veut progresser et évoluer mais ne sait pas par où commencer seul.",
+          pour_qui: audienceLabel(answers.audience),
+        },
+        {
+          numero: 3, prioritaire: false,
+          titre: titres[2],
+          format: FORMAT_LABELS[format],
+          prix: prixInfo.fourchette,
+          faisabilite: fais,
+          delai: prixInfo[delaKey] || "1 semaine",
+          probleme: "Ton client a besoin d'un outil concret pour gagner du temps ou de l'argent.",
+          pour_qui: audienceLabel(answers.audience),
+        },
+      ];
     }
-    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+
+    function audienceLabel(a) {
+      const labels = { jeunes: "Étudiants et jeunes adultes (18-30 ans)", salaries: "Salariés et professionnels en activité", entrepreneurs: "Entrepreneurs et commerçants africains", parents: "Parents et familles" };
+      return labels[a] || "Grand public francophone";
+    }
+
+    function render() {
+      const app = document.getElementById("app");
+      if (step === 0) { app.innerHTML = renderIntro(); return; }
+      if (step >= 1 && step <= 5) { app.innerHTML = renderQuestion(); return; }
+      if (step === 6) { app.innerHTML = renderResults(); return; }
+    }
+
+    function renderIntro() {
+      return `
+        <div class="center">
+          <div style="font-size:48px;margin-bottom:16px">💡</div>
+          <h1>Trouve ton produit<br/><span class="gold">digital</span></h1>
+          <p class="gold" style="font-size:16px;font-style:italic;margin:10px 0 6px">5 questions · 3 idées · 1 direction claire.</p>
+          <p class="grey" style="font-size:14px;line-height:1.7;margin-bottom:36px">Tu as une compétence. Tu as une expérience.<br/>Il existe des gens prêts à payer pour ce que tu sais faire.<br/>Cet outil t'aide à identifier quoi créer.</p>
+          <button class="btn" onclick="nextStep()">Commencer →</button>
+          <p class="small">Ça prend moins de 3 minutes</p>
+        </div>`;
+    }
+
+    function renderQuestion() {
+      const q = QUESTIONS[step - 1];
+      const progress = (step / 5) * 100;
+      const selected = answers[q.id] || "";
+      return `
+        <div>
+          <div class="progress-labels">
+            <span class="grey" style="font-size:12px;letter-spacing:1px;text-transform:uppercase">Question ${step} / 5</span>
+            <span class="gold" style="font-size:12px">${Math.round(progress)}%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+          <div class="question-emoji">${q.emoji}</div>
+          <div class="question-title">${q.question}</div>
+          <div class="question-sub">${q.sub}</div>
+          <div class="choices">
+            ${q.choices.map(c => `
+              <button class="choice ${selected === c.value ? 'selected' : ''}" onclick="selectChoice('${q.id}','${c.value}')">
+                <div class="choice-label">${c.label}</div>
+                <div class="choice-sub">${c.sub}</div>
+              </button>`).join("")}
+          </div>
+          <div class="nav">
+            ${step > 1 ? `<button class="back-btn" onclick="prevStep()">← Retour</button>` : `<div></div>`}
+            <button class="btn" onclick="nextStep()" ${!selected ? 'disabled' : ''}>${step === 5 ? "Voir mes idées ✨" : "Suivant →"}</button>
+          </div>
+        </div>`;
+    }
+
+    function renderResults() {
+      const produits = getResults();
+      return `
+        <div>
+          <div class="center">
+            <div style="font-size:36px;margin-bottom:10px">🎯</div>
+            <div class="results-title">Tes 3 idées de produits</div>
+            <div class="results-sub">Basées sur ton profil et tes réponses.</div>
+          </div>
+          <div class="reco-box">
+            <div class="reco-label">⭐ Recommandation prioritaire — Produit n°1</div>
+            <div class="reco-text">Ce premier produit correspond parfaitement à ton profil : faisable rapidement, adapté à ton audience et dans ta zone de confort. C'est celui à créer en premier.</div>
+          </div>
+          ${produits.map(p => `
+            <div class="card ${p.prioritaire ? 'priority' : ''}">
+              ${p.prioritaire ? '<div class="priority-badge">PRIORITAIRE</div>' : ''}
+              <div class="card-header">
+                <div class="card-num">${p.numero}</div>
+                <div class="card-title">${p.titre}</div>
+              </div>
+              <div class="tags">
+                <div class="tag"><span class="tag-label">Format</span><span class="tag-value">${p.format}</span></div>
+                <div class="tag"><span class="tag-label">Prix suggéré</span><span class="tag-value gold">${p.prix}</span></div>
+                <div class="tag"><span class="tag-label">Faisabilité</span><span class="tag-value green">${p.faisabilite}</span></div>
+                <div class="tag"><span class="tag-label">Délai création</span><span class="tag-value">${p.delai}</span></div>
+              </div>
+              <div class="card-section">
+                <span class="card-section-label">🔧 Problème résolu</span>
+                <div class="card-section-text">${p.probleme}</div>
+              </div>
+              <div class="card-section">
+                <span class="card-section-label">👤 Pour qui</span>
+                <div class="card-section-text">${p.pour_qui}</div>
+              </div>
+            </div>`).join("")}
+          <div class="end-nav">
+            <button class="btn-ghost" onclick="restart()">↺ Recommencer</button>
+          </div>
+        </div>`;
+    }
+
+    function selectChoice(id, value) {
+      answers[id] = value;
+      render();
+    }
+
+    function nextStep() {
+      if (step === 0) { step = 1; render(); return; }
+      const q = QUESTIONS[step - 1];
+      if (!answers[q.id]) return;
+      if (step === 5) { step = 6; render(); return; }
+      step++;
+      render();
+    }
+
+    function prevStep() {
+      if (step > 1) { step--; render(); }
+    }
+
+    function restart() {
+      answers = {}; step = 0; render();
+    }
+
+    render();
   </script>
 </body>
 </html>
+        
